@@ -13,26 +13,27 @@
 
 package org.activiti.spring.process.conf;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.activiti.spring.process.ProcessExtensionService;
-import org.activiti.spring.process.ProcessVariablesInitiator;
-import org.activiti.spring.process.model.ProcessExtensionModel;
-import org.activiti.spring.process.variable.VariableParsingService;
-import org.activiti.spring.process.variable.VariableValidationService;
-import org.activiti.spring.process.variable.types.JsonObjectVariableType;
-import org.activiti.spring.process.variable.types.DateVariableType;
-import org.activiti.spring.process.variable.types.VariableType;
-import org.activiti.spring.process.variable.types.JavaObjectVariableType;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.support.ResourcePatternResolver;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.activiti.spring.process.ProcessExtensionService;
+import org.activiti.spring.process.ProcessVariablesInitiator;
+import org.activiti.spring.process.model.ProcessExtensionModel;
+import org.activiti.spring.process.variable.DateFormatterProvider;
+import org.activiti.spring.process.variable.VariableParsingService;
+import org.activiti.spring.process.variable.VariableValidationService;
+import org.activiti.spring.process.variable.types.DateVariableType;
+import org.activiti.spring.process.variable.types.JavaObjectVariableType;
+import org.activiti.spring.process.variable.types.JsonObjectVariableType;
+import org.activiti.spring.process.variable.types.VariableType;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.support.ResourcePatternResolver;
 
 @Configuration
 public class ProcessExtensionsAutoConfiguration {
@@ -60,9 +61,16 @@ public class ProcessExtensionsAutoConfiguration {
                                                             Map<String, VariableType> variableTypeMap) {
         return new ProcessExtensionService(processExtensionsRoot, processExtensionsSuffix, objectMapper, resourceLoader, variableTypeMap);
     }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public DateFormatterProvider dateFormatterProvider() {
+        return new DateFormatterProvider();
+    }
 
     @Bean
-    public Map<String, VariableType> variableTypeMap(ObjectMapper objectMapper){
+    public Map<String, VariableType> variableTypeMap(ObjectMapper objectMapper, 
+                                                     DateFormatterProvider dateFormatterProvider){
 
         Map<String, VariableType> variableTypeMap = new HashMap<>();
         variableTypeMap.put("boolean", new JavaObjectVariableType(Boolean.class));
@@ -70,7 +78,7 @@ public class ProcessExtensionsAutoConfiguration {
         variableTypeMap.put("integer", new JavaObjectVariableType(Integer.class));
         variableTypeMap.put("json", new JsonObjectVariableType(objectMapper));
         variableTypeMap.put("file", new JsonObjectVariableType(objectMapper));
-        variableTypeMap.put("date", new DateVariableType(Date.class, new SimpleDateFormat(DateVariableType.defaultFormat)));
+        variableTypeMap.put("date", new DateVariableType(Date.class, dateFormatterProvider));
         return variableTypeMap;
     }
 
